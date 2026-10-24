@@ -372,7 +372,6 @@ export class InkNodeType implements NodeTypeDefinition {
       startCap,
       endCap
     });
-    this.clearCache(node.id);
     return {
       x: normalized.x,
       y: normalized.y,

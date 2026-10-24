@@ -590,6 +590,26 @@ describe('精确拾取、框选、零跨度等比缩放、序列化往返与仅�
     expect(inkDef.cacheSize).toBe(0);
   });
 
+  it('切换端点样式：updateCapStyle 是纯计算，写入后新的 ink 使缓存失效并重绘', () => {
+    const { engine, brush, store } = setup();
+    brush.activateTool();
+    dispatchPointer(engine, 'down', { x: 10, y: 10 });
+    dispatchPointer(engine, 'move', { x: 60, y: 30 });
+    dispatchPointer(engine, 'up', { x: 120, y: 40 });
+    const node = store.getNode(Object.keys(store.getView().content.nodes)[0])!;
+    const inkDef = engine.nodeTypes.get(InkNodeType.TYPE) as InkNodeType;
+    const before = inkDef.compose(node, { theme: engine.session.theme });
+
+    const patch = inkDef.updateCapStyle(node, 'round', 'arrow');
+    // 只算出新字段，不动缓存：未写入时仍复用原图元
+    expect(inkDef.compose(node, { theme: engine.session.theme })).toBe(before);
+
+    store.updateNode(node.id, patch);
+    const after = inkDef.compose(store.getNode(node.id)!, { theme: engine.session.theme });
+    expect(after).not.toBe(before);
+    expect(store.getNode(node.id)!.ink).toMatchObject({ startCap: 'round', endCap: 'arrow' });
+  });
+
   it('仅展示模式 (createDisplayPlugins) 与损坏数据校验隔离', () => {
     const engine = new SkyNoteEngine()
       .use(new BasicNodesPlugin())
