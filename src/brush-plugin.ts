@@ -115,7 +115,6 @@ export class BrushPlugin implements SkyNotePlugin, PointerHooks {
   private ctx!: CanvasPluginContext;
   private settings: BrushSettings;
   private draft: ActiveBrushDraft | null = null;
-  private lastRightClickCancelTime = 0;
   private readonly settingsListeners = new Set<(settings: Readonly<BrushSettings>) => void>();
 
   constructor(options: BrushPluginOptions = {}) {
@@ -216,32 +215,14 @@ export class BrushPlugin implements SkyNotePlugin, PointerHooks {
     this.ctx.host.overlay.clear(DRAFT_OVERLAY_SESSION);
   }
 
-  /**
-   * 消费本次右键触发的笔迹取消事件；若刚才的右键操作刚取消了正在绘制的笔迹，返回 true 并消耗标记，用于阻止弹出上下文菜单
-   */
-  consumeRightClickCancel(): boolean {
-    const now = Date.now();
-    if (now - this.lastRightClickCancelTime < 1000) {
-      this.lastRightClickCancelTime = 0;
-      return true;
-    }
-    if (this.draft) {
-      this.cancelActiveDraft();
-      return true;
-    }
-    return false;
+  /** 绘制中右键：丢弃这一笔并消费右键，不弹出菜单 */
+  onContextMenu(e: CanvasPointerEvent): void {
+    if (!this.draft) return;
+    e.stopPropagation();
+    this.cancelActiveDraft();
   }
 
   onPointerDown(e: CanvasPointerEvent): void {
-    if (e.button === 2) {
-      if (this.draft) {
-        e.stopPropagation();
-        this.cancelActiveDraft();
-        this.lastRightClickCancelTime = Date.now();
-      }
-      return;
-    }
-
     if (!this.active || e.isClaimed || this.draft || e.button !== 0 || this.ctx.session.inMaintenance) {
       return;
     }
@@ -371,7 +352,7 @@ export class BrushPlugin implements SkyNotePlugin, PointerHooks {
         this.ctx.host.setCursor('crosshair');
       } else {
         this.cancelActiveDraft();
-        this.ctx.host.setCursor('default');
+        if (change.previousTool === BRUSH_TOOL) this.ctx.host.setCursor('default');
       }
     }
   }

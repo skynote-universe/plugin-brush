@@ -422,6 +422,26 @@ describe('画笔绘制、单笔事务、参数冻结与中断清理 (BrushPlugin
     expect(Object.keys(store.getView().content.nodes)).toHaveLength(0);
     expect(host.captured.size).toBe(0);
   });
+
+  it('绘制中右键：丢弃这一笔并消费右键 (宿主不弹菜单)；空闲时不消费', () => {
+    const { engine, brush, store, host } = setup();
+    brush.activateTool();
+    const contextMenu = () =>
+      engine.pointer.dispatchContextMenu(new SyntheticPointerEvent({ point: { x: 60, y: 60 }, button: 2 }));
+
+    // 左键拖动中按右键是和弦按键，只有右键菜单事件、没有新的 pointerdown
+    dispatchPointer(engine, 'down', { x: 10, y: 10 });
+    dispatchPointer(engine, 'move', { x: 60, y: 60 });
+    expect(contextMenu()).toBe(true);
+    expect(brush.hasActiveDraft).toBe(false);
+    expect(host.sessions.has('brush:draft')).toBe(false);
+    expect(host.captured.size).toBe(0);
+    dispatchPointer(engine, 'up', { x: 80, y: 80 });
+    expect(Object.keys(store.getView().content.nodes)).toHaveLength(0);
+    expect(engine.session.tool).toBe(BRUSH_TOOL);
+
+    expect(contextMenu()).toBe(false);
+  });
 });
 
 describe('精确拾取、框选、零跨度等比缩放、序列化往返与仅展示/损坏隔离', () => {
