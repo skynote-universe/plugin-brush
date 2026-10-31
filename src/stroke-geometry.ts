@@ -524,6 +524,15 @@ export function computePolylineLength(pts: readonly Point[]): number {
   return len;
 }
 
+function extractPointPressure(point: unknown): number {
+  if (typeof point === 'object' && point !== null && 'pressure' in point) {
+    const raw = (point as { pressure: unknown }).pressure;
+    const num = typeof raw === 'number' ? raw : Number(raw);
+    if (Number.isFinite(num)) return num;
+  }
+  return 0.5;
+}
+
 /** 沿采样点折线沿弧长裁剪首尾指定距离，裁剪掉进入箭头头部的中间过冲采样点 */
 export function trimPolylinePoints<T extends Point>(pts: readonly T[], trimStart: number, trimEnd: number): T[] {
   const n = pts.length;
@@ -552,8 +561,8 @@ export function trimPolylinePoints<T extends Point>(pts: readonly T[], trimStart
         result.pop();
       } else {
         const t = (d - rem) / d;
-        const lastPressure = 'pressure' in last ? Number((last as unknown as Record<string, unknown>).pressure) : 0.5;
-        const prevPressure = 'pressure' in prev ? Number((prev as unknown as Record<string, unknown>).pressure) : 0.5;
+        const lastPressure = extractPointPressure(last);
+        const prevPressure = extractPointPressure(prev);
         const trimmedLast = {
           ...last,
           x: roundInkNum(prev.x + (last.x - prev.x) * t),
@@ -585,9 +594,8 @@ export function trimPolylinePoints<T extends Point>(pts: readonly T[], trimStart
         result.shift();
       } else {
         const t = rem / d;
-        const firstPressure =
-          'pressure' in first ? Number((first as unknown as Record<string, unknown>).pressure) : 0.5;
-        const nextPressure = 'pressure' in next ? Number((next as unknown as Record<string, unknown>).pressure) : 0.5;
+        const firstPressure = extractPointPressure(first);
+        const nextPressure = extractPointPressure(next);
         const trimmedFirst = {
           ...first,
           x: roundInkNum(first.x + (next.x - first.x) * t),
