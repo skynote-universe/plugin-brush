@@ -1,10 +1,10 @@
 /**
  * @file brush-plugin.ts
- * @description 商业画笔插件：分离仅展示插件 (BrushDisplayPlugin) 与完整绘制插件 (BrushPlugin)
+ * @description 画笔插件：分离仅展示插件 (BrushDisplayPlugin) 与完整绘制插件 (BrushPlugin)
  *
  * 设计考量 (Why):
- * 1. 展示与编辑装配解耦 (ADR-142)：宿主无编辑授权时可仅安装 BrushDisplayPlugin，已有 ink 节点正常渲染并支持通用选择/移动/等比缩放/复制/删除，
- *    但不开放画笔自由绘制；完整授权时安装 BrushPlugin。插件内部不含任何 VIP / 授权判断。
+ * 1. 展示与编辑装配解耦 (ADR-142)：BrushDisplayPlugin 提供已有 ink 节点的渲染与通用画布操作，
+ *    BrushPlugin 在此基础上提供自由绘制工具。
  * 2. 一笔一事务与草稿隔离：拖动期间采样仅写入插件自有 InkDraftBuffer 并经瞬态覆盖层预览，松手时执行简化与局部坐标归一化，
  *    通过一次 createNode 提交；Esc、pointercancel、失焦、切换工具、维护冻结、文档替换或插件卸载立即丢弃未提交草稿。
  * 3. 本笔参数冻结：笔迹按下时快照当前模式、颜色、线宽、透明度、压感与平滑参数，绘制中途修改工具栏仅作用于下一笔。
@@ -104,11 +104,11 @@ export class BrushDisplayPlugin implements SkyNotePlugin {
 }
 
 /**
- * 完整商业画笔插件：注册 ink 节点类型 + 连续采样自由绘制交互 (固定宽度笔 / 压感墨水笔)
+ * 完整画笔插件：注册 ink 节点类型与自由绘制交互，支持固定宽度笔和压感墨水笔。
  */
 export class BrushPlugin implements SkyNotePlugin, PointerHooks {
   readonly id = BRUSH_PLUGIN_ID;
-  readonly name = '商业画笔';
+  readonly name = '画笔';
   readonly version = '0.1.0';
   readonly nodeType = new InkNodeType();
 
